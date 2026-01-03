@@ -1,0 +1,21 @@
+{
+    "manifest_version": 3,
+    "name": "Local-First Time Tracker",
+    "version": "1.0.0",
+    "description": "Tracks active time spent on websites. Local-only, privacy-focused.",
+    "permissions": [
+        "storage",
+        "tabs",
+        "idle"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Time Tracker"
+    }
+}
