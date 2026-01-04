@@ -1,178 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Tracker Dashboard</title>
-    <!-- Chart.js Local -->
-    <script src="libs/chart.min.js"></script>
-    <style>
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --accent: #bb86fc;
-            --danger: #cf6679;
-        }
-
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            max-width: 1000px;
-            width: 100%;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 300;
-        }
-
-        h2 {
-            font-size: 18px;
-            margin-bottom: 16px;
-            color: var(--text-muted);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-
-        ul.top-sites {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        li.site-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #333;
-        }
-
-        li.site-item:last-child {
-            border-bottom: none;
-        }
-
-        .site-name {
-            font-weight: 500;
-        }
-
-        .site-time {
-            color: var(--accent);
-            font-family: monospace;
-        }
-
-        .controls {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        button {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: opacity 0.2s;
-        }
-
-        button.secondary {
-            background-color: #333;
-            color: white;
-        }
-
-        button.danger {
-            background-color: var(--danger);
-            color: #121212;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Tracker Dashboard</title>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js Local -->
+  <script src="libs/chart.min.js"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <link rel="stylesheet" href="styles/heatmap.css">
 </head>
-
 <body>
+  <div class="dashboard-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <h1 class="dashboard-title">
+        <span class="accent-underline">Weekly Focus</span>
+      </h1>
+      <div id="date-range" class="date-range">Loading...</div>
+    </header>
 
-    <div class="container">
-        <header>
-            <h1>Weekly Dashboard</h1>
-            <div id="date-range" style="color: var(--text-muted);">...</div>
-        </header>
+    <!-- Hero Stats Section -->
+    <section class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Active Time Today</div>
+        <div id="total-time-today" class="stat-value">0h 0m</div>
+        <div class="stat-subtitle">Across all sites</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-label">Most Visited Site</div>
+        <div id="most-visited-site" class="stat-value">—</div>
+        <div id="most-visited-percentage" class="stat-subtitle">0% of total time</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-label">Weekly Average</div>
+        <div id="weekly-average" class="stat-value">0h 0m</div>
+        <div class="stat-subtitle">Per day this week</div>
+      </div>
+    </section>
 
-        <div class="card" style="margin-bottom: 20px;">
-            <h2>Weekly Overview</h2>
-            <div class="chart-container">
-                <canvas id="weeklyChart"></canvas>
-            </div>
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+      <!-- Weekly Activity Chart -->
+      <section class="section-card weekly-section">
+        <div class="section-header">
+          <h2 class="section-title">Weekly Activity</h2>
         </div>
-
-        <div class="grid">
-            <div class="card">
-                <h2>Today's Top Sites</h2>
-                <ul id="top-sites-list" class="top-sites">
-                    <!-- Injected via JS -->
-                    <li style="color: var(--text-muted); text-align: center;">Loading...</li>
-                </ul>
-            </div>
-
-            <div class="card">
-                <h2>Data Management</h2>
-                <p style="color: var(--text-muted); font-size: 14px;">
-                    Your data is stored locally in your browser. You can export it as JSON or clear it to start fresh.
-                </p>
-                <div class="controls">
-                    <button id="export-btn" class="secondary">Export JSON</button>
-                    <button id="clear-btn" class="danger">Clear Data</button>
-                </div>
-            </div>
+        <div class="chart-container">
+          <canvas id="weeklyChart"></canvas>
         </div>
+        <div class="disclaimer">
+          <p class="disclaimer-text">
+            <i data-lucide="info" width="14" height="14" style="display: inline; vertical-align: middle;"></i>
+            Reruug eporsrnererck tlesttiregl.qui.unate vonsibian jonis
+          </p>
+        </div>
+      </section>
+
+      <!-- Top 5 Sites -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Top 5 Sites</h2>
+        </div>
+        <ul id="top-sites-list" class="top-sites-list list-unstyled">
+          <li class="loading-state">
+            <div class="loading-spinner"></div>
+            <span>Loading...</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Data Management -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Data Management</h2>
+        </div>
+        <div class="management-content">
+          <p class="management-description">
+            Your data is stored locally in your browser. You can export it as JSON or clear it to start fresh.
+          </p>
+          <div class="management-actions">
+            <button id="export-btn" class="btn btn-secondary">
+              <i data-lucide="download" width="16" height="16"></i>
+              Download JSON Report
+            </button>
+            <button id="clear-btn" class="btn btn-primary">
+              <i data-lucide="trash-2" width="16" height="16"></i>
+              Clear All History
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <script src="dashboard.js"></script>
-</body>
+    <!-- Heatmap Section -->
+    <section class="section-card heatmap-section">
+      <div class="section-header">
+        <h2 class="section-title">Calendar View</h2>
+      </div>
+      <div id="heatmap-container" class="heatmap-container"></div>
+    </section>
+  </div>
 
+  <!-- Tooltip (hidden by default) -->
+  <div id="heatmap-tooltip" class="heatmap-tooltip">
+    <div class="heatmap-tooltip-date"></div>
+    <div class="heatmap-tooltip-value"></div>
+  </div>
+
+  <script src="scripts/heatmap.js"></script>
+  <script src="dashboard.js"></script>
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+  </script>
+</body>
 </html>

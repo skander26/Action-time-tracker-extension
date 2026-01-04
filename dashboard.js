@@ -43,8 +43,9 @@ async function loadDashboard() {
     document.getElementById('date-range').textContent = `Week ${currentWeekKey.split('_')[2]}, ${now.getFullYear()}`;
 
     try {
-        const result = await chrome.storage.local.get([currentWeekKey]);
-        const weekData = result[currentWeekKey] || {};
+        // Load all data for heatmap
+        const allData = await chrome.storage.local.get(null);
+        const weekData = allData[currentWeekKey] || {};
 
         // 1. Process Weekly Data for Chart
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -83,23 +84,59 @@ async function loadDashboard() {
         const todaySites = weekData[todayKey] || {};
         renderTopSites(todaySites);
 
+        // 3. Calculate and render hero stats
+        renderHeroStats(weekData, todayKey, chartData);
+
+        // 4. Render heatmap with all data
+        if (typeof ActivityHeatmap !== 'undefined') {
+            new ActivityHeatmap('heatmap-container', allData);
+        }
+
     } catch (err) {
         console.error("Error loading dashboard:", err);
     }
 }
 
+// Render hero stats cards
+function renderHeroStats(weekData, todayKey, chartData) {
+    // Total time today
+    const todayData = weekData[todayKey] || {};
+    const totalToday = Object.values(todayData).reduce((sum, time) => sum + time, 0);
+    document.getElementById('total-time-today').textContent = formatTime(totalToday);
+
+    // Most visited site
+    if (Object.keys(todayData).length > 0) {
+        const sorted = Object.entries(todayData).sort((a, b) => b[1] - a[1]);
+        const [topSite, topTime] = sorted[0];
+        const percentage = Math.round((topTime / totalToday) * 100);
+        
+        document.getElementById('most-visited-site').textContent = topSite;
+        document.getElementById('most-visited-percentage').textContent = `${percentage}% of total time`;
+    }
+
+    // Weekly average
+    const totalWeekMinutes = chartData.reduce((sum, min) => sum + min, 0);
+    const avgMinutes = Math.round(totalWeekMinutes / 7);
+    const avgHours = Math.floor(avgMinutes / 60);
+    const avgMins = avgMinutes % 60;
+    document.getElementById('weekly-average').textContent = `${avgHours}h ${avgMins}m`;
+}
+
 function renderChart(labels, data) {
     const ctx = document.getElementById('weeklyChart').getContext('2d');
+    
     new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Active Time (Minutes)',
+                label: 'Deadly Activity',
                 data: data,
-                backgroundColor: 'rgba(187, 134, 252, 0.6)', // Accent color
-                borderColor: 'rgba(187, 134, 252, 1)',
-                borderWidth: 1
+                backgroundColor: 'rgba(255, 152, 106, 0.8)',
+                borderColor: '#FF986A',
+                borderWidth: 2,
+                borderRadius: 6,
+                hoverBackgroundColor: '#FF986A',
             }]
         },
         options: {
@@ -108,30 +145,64 @@ function renderChart(labels, data) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: '#333' },
-                    ticks: { color: '#a0a0a0' }
+                    grid: { 
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: { 
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        font: {
+                            size: 11
+                        }
+                    }
                 },
                 x: {
-                    grid: { color: '#333' },
-                    ticks: { color: '#a0a0a0' }
-                }
-            },
-            plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y + ' min';
-                            }
-                            return label;
+                    grid: { 
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: { 
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        font: {
+                            size: 12,
+                            weight: '500'
                         }
                     }
                 }
+            },
+            plugins: {
+                legend: { 
+                    display: true,
+                    position: 'bottom',
+                    labels: { 
+                        color: '#FF986A',
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        },
+                        usePointStyle: true,
+                        pointStyle: 'rect',
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#0f1640',
+                    titleColor: '#FFFFFF',
+                    bodyColor: '#FF986A',
+                    borderColor: 'rgba(255, 152, 106, 0.3)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function (context) {
+                            return context.parsed.y + ' minutes active';
+                        }
+                    }
+                }
+            },
+            animation: {
+                duration: 800,
+                easing: 'easeOutQuart'
             }
         }
     });
@@ -142,20 +213,24 @@ function renderTopSites(data) {
     list.innerHTML = '';
 
     if (Object.keys(data).length === 0) {
-        list.innerHTML = '<li style="padding:10px; text-align:center; color:#666;">No activity today.</li>';
+        list.innerHTML = `
+            <li class="empty-state">
+                <p style="color: rgba(255,255,255,0.5); font-size: 14px;">No activity today.</p>
+            </li>
+        `;
         return;
     }
 
-    // Sort by time desc
-    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 5); // Start with top 5
+    // Sort by time desc and take top 5
+    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
     sorted.forEach(([domain, ms]) => {
         const li = document.createElement('li');
         li.className = 'site-item';
         li.innerHTML = `
-      <span class="site-name">${domain}</span>
-      <span class="site-time">${formatTime(ms)}</span>
-    `;
+            <span class="site-name">${domain}</span>
+            <span class="site-time">${formatTime(ms)}</span>
+        `;
         list.appendChild(li);
     });
 }

@@ -19,7 +19,7 @@ function getDateString(date) {
     return date.toISOString().split('T')[0];
 }
 
-// Helper: Format milliseconds to HH:MM:SS
+// Helper: Format milliseconds to compact time format
 function formatTime(ms) {
     let seconds = Math.floor(ms / 1000);
     let minutes = Math.floor(seconds / 60);
@@ -28,8 +28,13 @@ function formatTime(ms) {
     seconds = seconds % 60;
     minutes = minutes % 60;
 
-    const pad = (num) => num.toString().padStart(2, '0');
-    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
 }
 
 // Render the list of domains
@@ -41,7 +46,7 @@ function renderList(data) {
     listDetails.innerHTML = '';
 
     if (!data || Object.keys(data).length === 0) {
-        emptyState.style.display = 'block';
+        emptyState.style.display = 'flex';
         return;
     }
 
@@ -50,20 +55,35 @@ function renderList(data) {
     // Convert object to array and sort by time (descending)
     const sortedDomains = Object.entries(data).sort((a, b) => b[1] - a[1]);
 
-    sortedDomains.forEach(([domain, ms]) => {
+    // Limit to top 7 items for popup
+    sortedDomains.slice(0, 7).forEach(([domain, ms]) => {
         const li = document.createElement('li');
         li.className = 'domain-item';
 
+        // Create domain info container
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'domain-info';
+
+        // Favicon placeholder with first letter
+        const favicon = document.createElement('div');
+        favicon.className = 'favicon-placeholder';
+        favicon.textContent = domain.charAt(0).toUpperCase();
+        
+        // Domain name
         const nameSpan = document.createElement('span');
         nameSpan.className = 'domain-name';
         nameSpan.textContent = domain;
         nameSpan.title = domain; // Tooltip for long names
 
+        infoDiv.appendChild(favicon);
+        infoDiv.appendChild(nameSpan);
+
+        // Time badge
         const timeSpan = document.createElement('span');
         timeSpan.className = 'domain-time';
         timeSpan.textContent = formatTime(ms);
 
-        li.appendChild(nameSpan);
+        li.appendChild(infoDiv);
         li.appendChild(timeSpan);
         listDetails.appendChild(li);
     });
@@ -93,5 +113,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Dashboard Button Link
     document.getElementById('open-dashboard').addEventListener('click', () => {
         chrome.tabs.create({ url: 'dashboard.html' });
+    });
+
+    // Settings and Pause links (placeholder functionality)
+    document.getElementById('settings-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Settings clicked - to be implemented');
+    });
+
+    document.getElementById('pause-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Pause tracking clicked - to be implemented');
     });
 });

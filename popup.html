@@ -1,90 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Time Tracker</title>
-  <style>
-    body {
-      width: 300px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-      margin: 0;
-      padding: 16px;
-      background-color: #f9f9f9;
-      color: #333;
-    }
-
-    h1 {
-      font-size: 18px;
-      margin-bottom: 12px;
-      color: #2c3e50;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
-    }
-
-    #date-display {
-      font-size: 12px;
-      color: #7f8c8d;
-      margin-bottom: 16px;
-    }
-
-    #domain-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .domain-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fff;
-      padding: 8px 12px;
-      margin-bottom: 8px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      font-size: 14px;
-    }
-
-    .domain-name {
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 160px;
-    }
-
-    .domain-time {
-      color: #2980b9;
-      font-family: 'Courier New', Courier, monospace;
-      font-weight: bold;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: #bdc3c7;
-      margin-top: 32px;
-      font-style: italic;
-    }
-  </style>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="stylesheet" href="styles/popup.css">
 </head>
-
 <body>
-  <h1>Time Today</h1>
-  <div id="date-display"></div>
-  <ul id="domain-list">
-    <!-- Items will be injected here -->
-  </ul>
-  <div id="empty-state" class="empty-state" style="display: none;">No data for today yet.</div>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="popup-header">
+      <h1 class="popup-title">
+        <span class="accent-underline">Today's Activity</span>
+      </h1>
+      <div id="date-display" class="popup-date"></div>
+    </div>
 
-  <div style="margin-top: 20px; text-align: center; border-top: 1px solid #eee; padding-top: 12px;">
-    <button id="open-dashboard"
-      style="background: #2c3e50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">View
-      Full Stats</button>
+    <!-- Domain List Section -->
+    <div class="domain-list-section">
+      <div class="section-label">Today 5</div>
+      <ul id="domain-list" class="domain-list list-unstyled">
+        <!-- Items will be injected here by JavaScript -->
+      </ul>
+      
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <i data-lucide="clock" class="empty-state-icon"></i>
+        <p class="empty-state-text">No activity tracked today yet.</p>
+      </div>
+    </div>
+
+    <!-- CTA Button -->
+    <div class="popup-cta">
+      <button id="open-dashboard" class="btn btn-primary btn-dashboard">
+        <i data-lucide="layout-dashboard" width="16" height="16"></i>
+        View Full Dashboard
+      </button>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="popup-footer">
+      <div class="footer-links">
+        <a href="#" class="footer-link" id="settings-link">
+          <i data-lucide="settings" width="14" height="14"></i>
+          <span>Settings</span>
+        </a>
+        <a href="#" class="footer-link" id="pause-link">
+          <i data-lucide="pause-circle" width="14" height="14"></i>
+          <span>Pause Tracking</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="popup-legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: var(--color-primary-cta);"></div>
+        <span class="legend-label">action</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #BBBE0E;"></div>
+        <span class="legend-label">BBBE0EP</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: var(--color-light-accent);"></div>
+        <span class="legend-label">Time Sests</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #666;"></div>
+        <span class="legend-label">Optiom drllbots</span>
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+  </script>
 </body>
-
 </html>
