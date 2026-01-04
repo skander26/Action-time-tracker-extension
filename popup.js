@@ -4,9 +4,19 @@
  */
 
 // Helper: Get today's date key
-function getDateKey() {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
+// Helper to get ISO week number and year
+function getWeekKey(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const year = d.getUTCFullYear();
+    const weekNo = Math.ceil((((d - new Date(Date.UTC(year, 0, 1))) / 86400000) + 1) / 7);
+    return `week_${year}_${weekNo.toString().padStart(2, '0')}`;
+}
+
+// Helper: Get today's date key
+function getDateString(date) {
+    return date.toISOString().split('T')[0];
 }
 
 // Helper: Format milliseconds to HH:MM:SS
@@ -61,18 +71,27 @@ function renderList(data) {
 
 // Main initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    const dateKey = getDateKey();
+    const now = new Date();
+    const currentWeekKey = getWeekKey(now);
+    const todayKey = getDateString(now);
 
     // Display current date
     const dateDisplay = document.getElementById('date-display');
-    dateDisplay.textContent = new Date().toDateString();
+    dateDisplay.textContent = now.toDateString();
 
     // Load data
     try {
-        const result = await chrome.storage.local.get([dateKey]);
-        const todayData = result[dateKey] || {};
+        const result = await chrome.storage.local.get([currentWeekKey]);
+        const weekData = result[currentWeekKey] || {};
+        const todayData = weekData[todayKey] || {};
+
         renderList(todayData);
     } catch (err) {
         console.error("Failed to load data:", err);
     }
+
+    // Dashboard Button Link
+    document.getElementById('open-dashboard').addEventListener('click', () => {
+        chrome.tabs.create({ url: 'dashboard.html' });
+    });
 });

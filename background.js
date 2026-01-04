@@ -27,10 +27,19 @@ function getDomain(url) {
     }
 }
 
-// Get today's date key (YYYY-MM-DD)
-function getDateKey() {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
+// Helper to get ISO week number and year
+function getWeekKey(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const year = d.getUTCFullYear();
+    const weekNo = Math.ceil((((d - new Date(Date.UTC(year, 0, 1))) / 86400000) + 1) / 7);
+    return `week_${year}_${weekNo.toString().padStart(2, '0')}`;
+}
+
+// Get numeric date string YYYY-MM-DD
+function getDateString(date) {
+    return date.toISOString().split('T')[0];
 }
 
 /**
@@ -50,13 +59,24 @@ async function stopTracking() {
     startTime = null;
 
     // Helper to save data for a specific date
-    const saveTime = async (dateKey, duration) => {
+    const saveTime = async (timestamp, duration) => {
         try {
-            const result = await chrome.storage.local.get([dateKey]);
-            let dailyData = result[dateKey] || {};
-            dailyData[domainToUpdate] = (dailyData[domainToUpdate] || 0) + duration;
-            await chrome.storage.local.set({ [dateKey]: dailyData });
-            console.log(`[TimeTracker] Saved ${duration}ms for ${domainToUpdate} on ${dateKey}`);
+            const dateObj = new Date(timestamp);
+            const weekKey = getWeekKey(dateObj);
+            const dateStr = getDateString(dateObj);
+
+            const result = await chrome.storage.local.get([weekKey]);
+            let weekData = result[weekKey] || {};
+            let dayData = weekData[dateStr] || {};
+
+            // Update domain time
+            dayData[domainToUpdate] = (dayData[domainToUpdate] || 0) + duration;
+
+            // Write back nested structure
+            weekData[dateStr] = dayData;
+            await chrome.storage.local.set({ [weekKey]: weekData });
+
+            console.log(`[TimeTracker] Saved ${duration}ms for ${domainToUpdate} in ${weekKey} > ${dateStr}`);
         } catch (err) {
             console.error("[TimeTracker] Storage error:", err);
         }
@@ -74,35 +94,20 @@ async function stopTracking() {
         const durationDay1 = midnight.getTime() - sessionStartTime;
         const durationDay2 = endTime - midnight.getTime();
 
-        const dateKey1 = startDate.toISOString().split('T')[0];
-        const dateKey2 = endDate.toISOString().split('T')[0];
-
-        console.log(`[TimeTracker] Session crossed midnight. Splitting: ${durationDay1}ms (${dateKey1}) / ${durationDay2}ms (${dateKey2})`);
-
-        // We await these sequentially or parallel, doesn't matter much for async default
-        await saveTime(dateKey1, durationDay1);
-        await saveTime(dateKey2, durationDay2);
+        // Save for Day 1
+        await saveTime(startDate, durationDay1);
+        // Save for Day 2
+        await saveTime(endDate, durationDay2);
 
     } else {
         // Standard same-day session
-        const duration = endTime - sessionStartTime;
-        const dateKey = endDate.toISOString().split('T')[0];
-        await saveTime(dateKey, duration);
+        await saveTime(endDate, endTime - sessionStartTime);
     }
 }
 
 // Start tracking a new domain
 function startTracking(domain) {
     if (!domain) return;
-
-    // If we were already tracking this domain, don't restart (optional optimization, but good for simple logic)
-    // Actually, for accurate "stop/start" logic on events, we usually stop whatever was running and start new.
-    // But if it's the SAME domain (e.g. reload), we can technically continue, but it's safer to stop/start to flush data.
-    // So we always stop first.
-
-    // NOTE: stopTracking() checks for currentDomain. If we call it here, it will flush the PREVIOUS domain.
-    // This function is designated to start the *new* one.
-
     currentDomain = domain;
     startTime = Date.now();
     console.log(`[TimeTracker] Started tracking: ${currentDomain}`);
